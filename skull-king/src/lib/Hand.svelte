@@ -1,8 +1,22 @@
+<script>
+  import {createEventDispatcher} from "svelte";
+
+  const dispatch = createEventDispatcher()
+
+  export let cards
+  export let canPlayCards
+</script>
+
 <section>
   <h2>Your hand</h2>
   <ul>
-    <li>Card 1</li>
-    <li>Card 2</li>
-    <li>Card 3</li>
+    {#each cards as card}
+      <li>
+        {card}
+        {#if canPlayCards}
+          <button on:click={() => dispatch("cardplayed", {card})}>Play card</button>
+        {/if}
+      </li>
+    {/each}
   </ul>
 </section>
