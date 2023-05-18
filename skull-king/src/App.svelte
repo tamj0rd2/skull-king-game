@@ -23,7 +23,10 @@
 
 <main>
   <h1>Round {roundNumber}</h1>
-  <Round on:roundcomplete={handleRoundComplete} />
+  <Round
+    on:roundcomplete={handleRoundComplete}
+    roundNumber={roundNumber}
+  />
   <section>
     <h2>Scoreboard</h2>
     <table>

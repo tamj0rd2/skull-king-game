@@ -5,16 +5,19 @@
   import {createEventDispatcher} from "svelte";
 
   const dispatch = createEventDispatcher()
+  export let roundNumber
 
-  let playerBid = undefined
-  let botBid = 1
-  $: allBidsComplete = playerBid !== undefined && botBid !== undefined
+  let round = {
+    [playerName]: {bid: undefined, wins: 0},
+    [botName]: {bid: 1, wins: 0},
+  }
 
-  let roundNumber = 1
+  $: allBidsComplete = Object.values(round).every(s => s.bid !== undefined)
+
   let trickNumber = 1
 
-  function handleBidConfirmed(e) {
-    playerBid = e.detail.bid
+  function handlePlayerBidConfirmed(e) {
+    round[playerName].bid = e.detail.bid
   }
 
   let cardsInTrick = [{card: "4 Blue", playedBy: botName}]
@@ -30,38 +33,35 @@
     cardsInTrick = [...cardsInTrick, {card: e.detail.card, playedBy: playerName}]
   }
 
-  $: roundScores = {
-    [playerName]: {bid: playerBid, wins: 0},
-    [botName]: {bid: botBid, wins: 0},
-  }
-
   $: trickComplete = cardsInTrick.length === playerCount
+  // TODO: determine winner correctly
   let trickWinner = playerName
 
   $: if (cardsInTrick.length === playerCount) {
     console.log("everyone has played their card!")
 
     // TODO: correctly determine the winner
-    roundScores[trickWinner].wins += 1
+    round[trickWinner].wins += 1
 
     if (trickNumber === roundNumber) {
-      dispatch("roundcomplete", roundScores)
+      dispatch("roundcomplete", round)
     }
   }
 </script>
 
 <main>
   <Hand cards={playerCards} canPlayCards={allBidsComplete && !hasPlayedCard} on:cardplayed={handleCardPlayed}/>
-  {#if playerBid === undefined}
-    <PlayerBet on:bidconfirmed={handleBidConfirmed}/>
+  {#if round[playerName].bid === undefined}
+    <PlayerBet on:bidconfirmed={handlePlayerBidConfirmed}/>
   {/if}
 
   {#if allBidsComplete}
     <section>
       <h2>Bids</h2>
       <ul>
-        <li>Player: {playerBid}</li>
-        <li>Bot: {botBid}</li>
+        {#each Object.entries(round) as [playerName, {bid}] (playerName)}
+          <li>{playerName}: {bid}</li>
+        {/each}
       </ul>
     </section>
 
