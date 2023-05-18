@@ -1,111 +1,56 @@
 <script>
-  import Hand from "./lib/Hand.svelte";
-  import PlayerBet from "./lib/PlayerBet.svelte";
-  import {calculateScore} from "./GameLogic.js";
+  import {botName, calculateRoundScore, playerName} from "./GameLogic.js";
+  import Round from "./lib/Round.svelte";
 
-  const botName = "Bot"
-  const playerName = "Player"
-
-  let playerBid = undefined
-  let botBid = 1
-  $: allBidsComplete = playerBid !== undefined && botBid !== undefined
-
-  const playerCount = 2 // player and the bot
   let roundNumber = 1
-  let trickNumber = 1
 
-  function handleBidConfirmed(e) {
-    playerBid = e.detail.bid
+  let scores = {
+    [playerName]: new Array(10).fill(0).map((_, i) => ({number: i +1, score: 0 })),
+    [botName]: new Array(10).fill(0).map((_, i) => ({number: i +1, score: 0 })),
   }
 
-  let cardsInTrick = [{card: "4 Blue", playedBy: botName}]
-  let playerCards = ["6 Blue"]
-
-  let hasPlayedCard = false
-  function handleCardPlayed(e) {
-    console.log(e.detail.card)
-    hasPlayedCard = true
-
-    const cardIndex = playerCards.findIndex((v) => v === e.detail.card)
-    playerCards = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex+1)]
-    cardsInTrick = [...cardsInTrick, {card: e.detail.card, playedBy: playerName}]
+  function handleRoundComplete(e) {
+    Object.entries(e.detail).forEach(([name, currentRound]) => {
+      scores[name][roundNumber - 1].score = calculateRoundScore(roundNumber, currentRound)
+    })
   }
 
-  $: roundScores = {
-    [playerName]: {bid: playerBid, wins: 0},
-    [botName]: {bid: botBid, wins: 0},
-  }
-
-  $: trickComplete = cardsInTrick.length === playerCount
-  let trickWinner = playerName
-  let roundComplete = false
-
-  $: if (cardsInTrick.length === playerCount) {
-    console.log("everyone has played their card!")
-
-    // TODO: correctly determine the winner
-    roundScores[trickWinner].wins += 1
-
-    console.log(roundScores)
-
-    if (trickNumber === roundNumber) {
-      roundComplete = true
-    }
+  function totalScore(rounds) {
+    const total = rounds.reduce((total, round) => total + round.score, 0)
+    return isNaN(total) ? '' : total
   }
 </script>
 
 <main>
-  <h1>Round {roundNumber} - {allBidsComplete ? `Trick ${trickNumber}` : "Bidding Phase"}</h1>
-  <Hand cards={playerCards} canPlayCards={allBidsComplete && !hasPlayedCard} on:cardplayed={handleCardPlayed}/>
-  {#if playerBid === undefined}
-    <PlayerBet on:bidconfirmed={handleBidConfirmed}/>
-  {/if}
-
-  {#if allBidsComplete}
-    <section>
-      <h2>Bids</h2>
-      <ul>
-        <li>Player: {playerBid}</li>
-        <li>Bot: {botBid}</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Cards in trick</h2>
-      <ul>
-        {#each cardsInTrick as {card, playedBy}}
-          <li>{playedBy}: {card}</li>
-        {/each}
-      </ul>
-      {#if trickComplete}
-        <p><strong>{trickWinner}</strong> won this time</p>
-      {/if}
-    </section>
-
-    <section>
-      <h2>Scoreboard</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Players</th>
-            <th>Round 1</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each Object.entries(roundScores) as [name, scoreThingy]}
-            <tr>
-              <td>{name}</td>
-              <td>
-                {#if roundComplete}
-                  {calculateScore(roundNumber, scoreThingy)}
-                {/if}
-              </td>
-            </tr>
+  <h1>Round {roundNumber}</h1>
+  <Round on:roundcomplete={handleRoundComplete} />
+  <section>
+    <h2>Scoreboard</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Players</th>
+          {#each new Array(10) as _, i}
+            <th>R{i + 1}</th>
           {/each}
-        </tbody>
-      </table>
-    </section>
-  {/if}
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each Object.entries(scores) as [playerName, rounds] (playerName)}
+          <tr>
+            <td>{playerName}</td>
+            {#each rounds as round (round.number)}
+              <td>
+                {round.score}
+              </td>
+            {/each}
+            <td>{totalScore(rounds)}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </section>
 </main>
 
 <style>
