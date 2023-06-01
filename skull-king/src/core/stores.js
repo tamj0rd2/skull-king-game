@@ -1,19 +1,23 @@
 import { writable } from 'svelte/store';
 
 class Game {
-  _scoreBoard = [{
-    "tam": {bid: undefined},
-    "peter": {bid: undefined},
-  }]
-
-  _hands = {
-    "tam": ["Card1"],
-    "peter": ["Card2"],
+  constructor() {
+    this._roundIndex = -1
+    this._hands = {}
+    this._scoreBoard = []
+    this._currentTrick = []
+    this._startNextRound()
   }
 
-  _roundIndex = 0
-
-  _currentTrick = []
+  _startNextRound() {
+    this._currentTrick = []
+    this._roundIndex += 1
+    this._scoreBoard = [...this._scoreBoard, this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: {}}), {})]
+    this._hands = this.getPlayers().reduce((accum, pid, i) => {
+      const cards = new Array(this.getRoundNumber()).fill(undefined).map((_, i) => `${pid}Card${i + 1}`)
+      return {...accum, [pid]: cards}
+    }, {})
+  }
 
   getRoundNumber() {
     return this._roundIndex + 1
@@ -21,6 +25,10 @@ class Game {
 
   getCards(playerId) {
     return this._hands[playerId]
+  }
+
+  getPlayers() {
+    return ["tam", "peter"]
   }
 
   getScoreBoard() {
@@ -42,10 +50,6 @@ class Game {
 
     this._hands[e.playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
     this._currentTrick = [...this._currentTrick, {cardId: e.cardId, playerId: e.playerId}]
-  }
-
-  _handleStartNextRoundEvent(e) {
-    this._roundIndex += 1
   }
 }
 
@@ -77,7 +81,7 @@ export function dispatchGameEvent(e) {
         g._handlePlayCardEvent(e)
         return g
       case e instanceof StartNextRoundEvent:
-        g._handleStartNextRoundEvent(e)
+        g._startNextRound(e)
         return g
       default:
         throw new Error(`Unhandled event type - ${e.constructor}`)
