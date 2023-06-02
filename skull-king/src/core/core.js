@@ -14,7 +14,8 @@ class Game {
     this._hands = {}
     this._scoreBoard = []
     this._currentTrick = []
-    this._trickIndex = -1
+    this._currentTrickWinner = undefined
+    this._trickIndex = undefined
     this._startNextRound()
   }
 
@@ -25,7 +26,8 @@ class Game {
       const cards = new Array(this.getRoundNumber()).fill(undefined).map((_, i) => `${pid}Card${i + 1}`)
       return {...accum, [pid]: cards}
     }, {})
-    this._startNextTrick()
+    this._trickIndex = undefined
+    this._clearTrick()
   }
 
   getRoundNumber() {
@@ -44,25 +46,40 @@ class Game {
     return this._scoreBoard
   }
 
+  getRoundScoreBoard() {
+    return this._scoreBoard[this._roundIndex]
+  }
+
+  hasEveryoneBid() {
+    return Object.values(this.getRoundScoreBoard()).every(s => s.bid !== undefined)
+  }
+
   getCardsInTrick() {
     return this._currentTrick
   }
 
+  getCurrentTrickWinner() {
+    return this._currentTrickWinner
+  }
+
   _handleBidEvent(e) {
     this._scoreBoard[this._roundIndex][e.playerId].bid = e.bid
+    if (this.hasEveryoneBid()) {
+      // TODO: maybe it shouldn't auto start, and the host should click a button instead? like when starting the next round
+      this._startNextTrick()
+    }
   }
 
   _handlePlayCardEvent(e) {
     this._playCard(e)
     if (this._currentTrick.length === this.getPlayers().length) {
       // pretends that tam won
-      const winner = "tam"
-      const currentWins = this._scoreBoard[this._roundIndex][winner].wins || 0
-      this._scoreBoard[this._roundIndex][winner].wins = currentWins + 1
+      this._currentTrickWinner = "tam"
+      const currentWins = this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins || 0
+      this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins = currentWins + 1
     }
 
     if (this._trickIndex === this._roundIndex) {
-      const round = this._scoreBoard[this._roundIndex]
       this.getPlayers().forEach((pid) => {
         this._scoreBoard[this._roundIndex][pid].score = this._calculateScore(pid)
       })
@@ -86,9 +103,20 @@ class Game {
     return Math.abs(bid - wins) * -10
   }
 
-  _startNextTrick(e) {
-    this._trickIndex += 1
+  _startNextTrick() {
+    this._clearTrick()
+    if (this._trickIndex === undefined) this._trickIndex = 0
+    else this._trickIndex += 1
+  }
+
+  _clearTrick() {
     this._currentTrick = []
+    this._currentTrickWinner = undefined
+  }
+
+  getCurrentTrickNumber() {
+    if (this._trickIndex !== undefined) return this._trickIndex + 1
+    return undefined
   }
 }
 
@@ -113,6 +141,7 @@ export class StartNextRoundEvent {}
 export class StartNextTrickEvent {}
 
 export function dispatchGameEvent(e) {
+  console.dir(e)
   game.update((g) => {
     switch(true) {
       case e instanceof BidEvent:

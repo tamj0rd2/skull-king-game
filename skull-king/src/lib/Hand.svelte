@@ -1,10 +1,15 @@
 <script>
-  import {createEventDispatcher} from "svelte";
+  import {dispatchGameEvent, game, PlayCardEvent} from "../core/core.js";
 
-  const dispatch = createEventDispatcher()
+  export let playerId
+  $: cards = $game.getCards(playerId)
+  $: canPlayCards = $game.hasEveryoneBid()
 
-  export let cards
-  export let canPlayCards
+  function handlePlayCard(cardId) {
+    if (confirm(`card played ${cardId}`)) {
+      dispatchGameEvent(new PlayCardEvent(playerId, cardId))
+    }
+  }
 </script>
 
 <section>
@@ -14,7 +19,7 @@
       <li>
         {card}
         {#if canPlayCards}
-          <button on:click={() => dispatch("cardplayed", {card})}>Play card</button>
+          <button on:click={() => handlePlayCard(card)}>Play card</button>
         {/if}
       </li>
     {/each}

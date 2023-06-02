@@ -1,14 +1,15 @@
 <script>
-  import {createEventDispatcher} from "svelte";
+  import {BidEvent, dispatchGameEvent, game} from "../core/core.js";
 
+  export let playerId
   let selectedBid = undefined
 
-  const dispatch = createEventDispatcher()
-  const possibleBids = new Array(2).fill(0).map((_, i) => i)
+  $: roundNumber = $game.getRoundNumber()
+  $: possibleBids = new Array(roundNumber + 1).fill(0).map((_, i) => i)
 
   function confirmBid() {
     if (confirm(`Are you sure you want to bid ${selectedBid}?`)) {
-      dispatch('bidconfirmed', { bid: selectedBid })
+      dispatchGameEvent(new BidEvent(playerId, selectedBid))
     }
   }
 </script>
