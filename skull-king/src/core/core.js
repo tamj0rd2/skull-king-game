@@ -12,7 +12,9 @@ class Game {
   constructor() {
     this._roundIndex = -1
     this._hands = {}
-    this._scoreBoard = []
+    this._scoreBoard = new Array(10).fill(0).map((_, i) => {
+      return this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})
+    })
     this._currentTrick = []
     this._currentTrickWinner = undefined
     this._trickIndex = undefined
@@ -21,7 +23,6 @@ class Game {
 
   _startNextRound() {
     this._roundIndex += 1
-    this._scoreBoard = [...this._scoreBoard, this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})]
     this._hands = this.getPlayers().reduce((accum, pid, i) => {
       const cards = new Array(this.getRoundNumber()).fill(undefined).map((_, i) => `${pid}Card${i + 1}`)
       return {...accum, [pid]: cards}
@@ -42,8 +43,18 @@ class Game {
     return ["tam", "peter"]
   }
 
-  getScoreBoard() {
+  getScoreBoardByRounds() {
     return this._scoreBoard
+  }
+
+  getScoreBoardByCompletedPlayerRounds() {
+    const initial = this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: []}), {})
+    return this._scoreBoard.reduce((accum, round) => {
+      Object.entries(round).forEach(([pid, roundPlayerScoreCard]) => {
+        accum[pid] = [...accum[pid], roundPlayerScoreCard]
+      })
+      return accum
+    }, initial)
   }
 
   getRoundScoreBoard() {
@@ -62,6 +73,10 @@ class Game {
     return this._currentTrickWinner
   }
 
+  isRoundComplete(roundNo) {
+    return Object.values(this._scoreBoard[roundNo - 1]).reduce((tot, {wins}) => tot + wins, 0) === roundNo
+  }
+
   _handleBidEvent(e) {
     this._scoreBoard[this._roundIndex][e.playerId].bid = e.bid
     if (this.hasEveryoneBid()) {
@@ -72,18 +87,21 @@ class Game {
 
   _handlePlayCardEvent(e) {
     this._playCard(e)
-    if (this._currentTrick.length === this.getPlayers().length) {
-      // pretends that tam won
-      this._currentTrickWinner = "tam"
-      const currentWins = this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins || 0
-      this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins = currentWins + 1
-    }
 
-    if (this._trickIndex === this._roundIndex) {
-      this.getPlayers().forEach((pid) => {
-        this._scoreBoard[this._roundIndex][pid].score = this._calculateScore(pid)
-      })
-    }
+    const isTrickComplete = this._currentTrick.length === this.getPlayers().length
+    if (!isTrickComplete) return
+
+    // pretend that tam won
+    this._currentTrickWinner = "tam"
+    const currentWins = this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins || 0
+    this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins = currentWins + 1
+
+    const isRoundDone = this._trickIndex === this._roundIndex
+    if (!isRoundDone) return
+    
+    this.getPlayers().forEach((pid) => {
+      this._scoreBoard[this._roundIndex][pid].score = this._calculateScore(pid)
+    })
   }
 
   _playCard(e) {

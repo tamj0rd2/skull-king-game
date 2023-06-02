@@ -20,6 +20,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCards(peter, ["peterCard1"])
 
   // round 1 bids take place
+  assert.equal(gameState().isRoundComplete(1), false)
   testHelper.assertCurrentTrickNumber(undefined) // trick taking doesn't begin until bids are complete
   dispatchGameEvent(new BidEvent(tam, 1))
   dispatchGameEvent(new BidEvent(peter, 0))
@@ -46,13 +47,12 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrickWinner(tam)
   testHelper.assertPlayerRoundScore(1, tam, new PlayerRoundScoreCard({bid: 1, wins: 1, score: 20}))
   testHelper.assertPlayerRoundScore(1, peter, new PlayerRoundScoreCard({bid: 0, wins: 0, score: 10}))
-
-  // the next round can be started
-
+  assert.equal(gameState().isRoundComplete(1), true)
 
   //=======ROUND 2========
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(2)
+  assert.equal(gameState().isRoundComplete(2), false)
   testHelper.assertCurrentTrickNumber(undefined)
   testHelper.assertAllPlayersHaveCards(2)
   testHelper.assertAllPlayersHaveEmptyBidsAndScore()
@@ -76,6 +76,7 @@ test("smoke test for playing a 2 player game", (t) => {
   // assume that tam won the first trick
   testHelper.assertCurrentTrickNumber(1)
   testHelper.assertCurrentTrickWinner(tam)
+  assert.equal(gameState().isRoundComplete(2), false)
 
   // play the second trick
   dispatchGameEvent(new StartNextTrickEvent())
@@ -91,6 +92,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrickWinner(tam)
   testHelper.assertPlayerRoundScore(2, tam, new PlayerRoundScoreCard({bid: 0, wins: 2, score: -20}))
   testHelper.assertPlayerRoundScore(2, peter, new PlayerRoundScoreCard({bid: 1, wins: 0, score: -10}))
+  assert.equal(gameState().isRoundComplete(2), true)
 
   // and the next round can be started and initiated
   dispatchGameEvent(new StartNextRoundEvent())
@@ -109,7 +111,7 @@ const testHelper = {
     assert.deepStrictEqual(gameState().getCards(pid), expectedCards)
   },
   assertPlayerRoundScore(roundNumber, pid, expected) {
-    assert.deepStrictEqual(gameState().getScoreBoard()[gameState().getRoundNumber() - 1][pid], expected)
+    assert.deepStrictEqual(gameState().getScoreBoardByRounds()[gameState().getRoundNumber() - 1][pid], expected)
   },
   assertCurrentTrick(expectedCards) {
     assert.deepStrictEqual(gameState().getCardsInTrick(), expectedCards)
@@ -127,7 +129,7 @@ const testHelper = {
     const g = gameState()
     const roundNumber = g.getRoundNumber()
     g.getPlayers().forEach((pid) => {
-      assert.deepStrictEqual(g.getScoreBoard()[roundNumber - 1][pid], new PlayerRoundScoreCard())
+      assert.deepStrictEqual(g.getScoreBoardByRounds()[roundNumber - 1][pid], new PlayerRoundScoreCard())
     })
   },
   assertCurrentTrickWinner(expectedWinnerPid) {

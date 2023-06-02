@@ -8,12 +8,9 @@
 
 <main>
   <PlayerUI playerId="tam" />
+  <hr />
   <PlayerUI playerId="peter" />
 </main>
 
 <style>
-  main {
-    display: flex;
-    justify-content: space-around;
-  }
 </style>

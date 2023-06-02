@@ -13,7 +13,7 @@
 </script>
 
 <section>
-  <h2>Your hand</h2>
+  <h2>Your hand ({playerId})</h2>
   <ul>
     {#each cards as card}
       <li>

@@ -6,7 +6,7 @@
   export let playerId
 
   function totalScore(rounds) {
-    return 0
+    return "todo"
   }
 
   $: alreadyBid = $game.getRoundScoreBoard()[playerId].bid !== undefined
@@ -56,13 +56,11 @@
       </tr>
       </thead>
       <tbody>
-      {#each Object.entries({}) as [playerName, rounds] (playerName)}
+      {#each Object.entries($game.getScoreBoardByCompletedPlayerRounds()) as [playerId, rounds] (playerId)}
         <tr>
-          <td>{playerName}</td>
-          {#each rounds as round (round.number)}
-            <td>
-              {round.score}
-            </td>
+          <td>{playerId}</td>
+          {#each rounds as {score}}
+            <td>{score ?? ""}</td>
           {/each}
           <td>{totalScore(rounds)}</td>
         </tr>
