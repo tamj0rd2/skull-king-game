@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import {Deck} from "./cards.js";
 
 export class PlayerRoundScoreCard {
   constructor({ bid, wins, score } = {}) {
@@ -10,22 +11,30 @@ export class PlayerRoundScoreCard {
 
 class Game {
   constructor() {
+    this.reset()
+  }
+
+  reset() {
     this._roundIndex = -1
     this._hands = {}
-    this._scoreBoard = new Array(10).fill(0).map((_, i) => {
-      return this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})
-    })
     this._currentTrick = []
     this._currentTrickWinner = undefined
     this._trickIndex = undefined
+  }
+
+  start(players, deck) {
+    this._deck = deck ?? new Deck()
+    this._scoreBoard = new Array(10).fill(0).map((_, i) => {
+      return this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})
+    })
     this._startNextRound()
   }
 
   _startNextRound() {
     this._roundIndex += 1
+    this._deck.reset()
     this._hands = this.getPlayers().reduce((accum, pid, i) => {
-      const cards = new Array(this.getRoundNumber()).fill(undefined).map((_, i) => `${pid}Card${i + 1}`)
-      return {...accum, [pid]: cards}
+      return {...accum, [pid]: this._deck.takeRandomCards(this.getRoundNumber())}
     }, {})
     this._trickIndex = undefined
     this._clearTrick()
@@ -109,11 +118,11 @@ class Game {
 
   _playCard(e) {
     const playerCards = this._hands[e.playerId]
-    const cardIndex = playerCards.indexOf(e.cardId)
-    if (cardIndex < 0) throw new Error(`couldn't find card - ${e}`)
+    const cardIndex = playerCards.indexOf(e.card)
+    if (cardIndex < 0) throw new Error(ERROR_CARD_NOT_IN_HAND)
 
     this._hands[e.playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
-    this._currentTrick = [...this._currentTrick, {cardId: e.cardId, playerId: e.playerId}]
+    this._currentTrick = [...this._currentTrick, {card: e.card, playerId: e.playerId}]
   }
 
   _calculateScore(playerId) {
@@ -151,9 +160,9 @@ export class BidEvent {
 }
 
 export class PlayCardEvent {
-  constructor(playerId, cardId) {
+  constructor(playerId, card) {
     this.playerId = playerId
-    this.cardId = cardId
+    this.card = card
   }
 }
 
@@ -162,7 +171,6 @@ export class StartNextRoundEvent {}
 export class StartNextTrickEvent {}
 
 export function dispatchGameEvent(e) {
-  console.dir(e)
   game.update((g) => {
     switch(true) {
       case e instanceof BidEvent:
@@ -182,3 +190,5 @@ export function dispatchGameEvent(e) {
     }
   })
 }
+
+export const ERROR_CARD_NOT_IN_HAND = "cannot play a card that is not in your hand"

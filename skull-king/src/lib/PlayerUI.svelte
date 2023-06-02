@@ -43,8 +43,8 @@
       <h2>Cards in trick</h2>
       <ul>
         <!--        TODO: I need a way to play as peter. Maybe split screen and show the UI twice? left tam, right p?-->
-        {#each $game.getCardsInTrick() as {cardId, playerId} (cardId)}
-          <li>{playerId}: {cardId}</li>
+        {#each $game.getCardsInTrick() as {card, playerId} (card)}
+          <li>{playerId}: {card}</li>
         {/each}
       </ul>
       {#if $game.isCurrentTrickComplete()}

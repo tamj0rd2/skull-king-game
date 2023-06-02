@@ -1,23 +1,53 @@
-import test from 'node:test'
+import test, {beforeEach} from 'node:test'
 import assert from 'node:assert'
 import {
   BidEvent,
-  dispatchGameEvent,
+  dispatchGameEvent, ERROR_CARD_NOT_IN_HAND,
   game as gameStore,
   PlayCardEvent,
   PlayerRoundScoreCard,
   StartNextRoundEvent, StartNextTrickEvent
 } from "./core.js";
 import { get } from 'svelte/store';
+import {Deck} from "./cards.js";
+
+class DeckDouble {
+  _deals = []
+
+  setupDeals(roundNumber) {
+    const testDeck = new Deck()
+    const tamCards = testDeck.takeRandomCards(roundNumber)
+    const peterCards = testDeck.takeRandomCards(roundNumber)
+    this._deals.push(tamCards, peterCards)
+    return [tamCards, peterCards]
+  }
+
+  takeRandomCards(count) {
+    return this._deals.shift()
+  }
+
+  reset() {
+  }
+}
+
+const tam = "tam"
+const peter = "peter"
+const deckDouble = new DeckDouble()
+
+beforeEach(() => {
+  deckDouble.reset()
+  gameState().reset()
+})
 
 test("smoke test for playing a 2 player game", (t) => {
-  const tam = "tam"
-  const peter = "peter"
+  let [tamCards, peterCards] = deckDouble.setupDeals(1)
+  gameState().start([tam, peter], deckDouble)
 
   // tam and peter both start with 1 card for the first round
   testHelper.assertRoundNumber(1)
-  testHelper.assertCards(tam, ["tamCard1"])
-  testHelper.assertCards(peter, ["peterCard1"])
+
+  testHelper.assertCardsInHand(tam, tamCards)
+  testHelper.assertCardsInHand(peter, peterCards)
 
   // round 1 bids take place
   testHelper.assertCurrentRoundIncomplete()
@@ -35,14 +65,14 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrick([])
 
   // tam plays a card which goes into the current trick
-  dispatchGameEvent(new PlayCardEvent(tam, "tamCard1"))
-  testHelper.assertCards(tam, [])
-  testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}])
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[0]))
+  testHelper.assertCardsInHand(tam, [])
+  testHelper.assertCurrentTrick([{card: tamCards[0], playerId: tam}])
 
   // peter plays a card which goes into the current trick
-  dispatchGameEvent(new PlayCardEvent(peter, "peterCard1"))
-  testHelper.assertCards(peter, [])
-  testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}, {cardId: "peterCard1", playerId: peter}])
+  dispatchGameEvent(new PlayCardEvent(peter, peterCards[0]))
+  testHelper.assertCardsInHand(peter, [])
+  testHelper.assertCurrentTrick([{card: tamCards[0], playerId: tam}, {card: peterCards[0], playerId: peter}])
 
   // the scores are calculated, assuming that tam won
   testHelper.assertCurrentTrickComplete()
@@ -52,6 +82,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentRoundComplete()
 
   //=======ROUND 2========
+  ;[tamCards, peterCards] = deckDouble.setupDeals(2)
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(2)
   testHelper.assertCurrentRoundIncomplete()
@@ -67,14 +98,14 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrickIncomplete()
 
   // tam plays a card which goes into the current trick
-  dispatchGameEvent(new PlayCardEvent(tam, "tamCard1"))
-  testHelper.assertCards(tam, ["tamCard2"])
-  testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}])
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[0]))
+  testHelper.assertCardsInHand(tam, [tamCards[1]])
+  testHelper.assertCurrentTrick([{card: tamCards[0], playerId: tam}])
 
   // peter plays a card which goes into the current trick
-  dispatchGameEvent(new PlayCardEvent(peter, "peterCard2"))
-  testHelper.assertCards(peter, ["peterCard1"])
-  testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}, {cardId: "peterCard2", playerId: peter}])
+  dispatchGameEvent(new PlayCardEvent(peter, peterCards[1]))
+  testHelper.assertCardsInHand(peter, [peterCards[0]])
+  testHelper.assertCurrentTrick([{card: tamCards[0], playerId: tam}, {card: peterCards[1], playerId: peter}])
 
   // assume that tam won the first trick
   testHelper.assertCurrentTrickComplete()
@@ -86,11 +117,11 @@ test("smoke test for playing a 2 player game", (t) => {
   dispatchGameEvent(new StartNextTrickEvent())
   testHelper.assertCurrentTrickNumber(2)
   testHelper.assertCurrentTrickIncomplete()
-  dispatchGameEvent(new PlayCardEvent(tam, "tamCard2"))
-  dispatchGameEvent(new PlayCardEvent(peter, "peterCard1"))
-  testHelper.assertCards(tam, [])
-  testHelper.assertCards(peter, [])
-  testHelper.assertCurrentTrick([{cardId: "tamCard2", playerId: tam}, {cardId: "peterCard1", playerId: peter}])
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  dispatchGameEvent(new PlayCardEvent(peter, peterCards[0]))
+  testHelper.assertCardsInHand(tam, [])
+  testHelper.assertCardsInHand(peter, [])
+  testHelper.assertCurrentTrick([{card: tamCards[1], playerId: tam}, {card: peterCards[0], playerId: peter}])
 
   // the scores reflect that tam won both tricks
   testHelper.assertCurrentTrickComplete()
@@ -101,6 +132,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentRoundComplete()
 
   // and the next round can be started and initiated
+  ;[tamCards, peterCards] = deckDouble.setupDeals(3)
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(3)
   testHelper.assertAllPlayersHaveCards(3)
@@ -108,12 +140,24 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrick([])
 })
 
+test("a player cannot play a card that isn't in their hand", () => {
+  let [tamCards, peterCards] = deckDouble.setupDeals(1)
+  gameState().start([tam, peter])
+
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+  assert.throws(
+    () => dispatchGameEvent(new PlayCardEvent(tam, peterCards[0])),
+    {message: ERROR_CARD_NOT_IN_HAND}
+  )
+})
+
 function gameState() {
   return get(gameStore)
 }
 
 const testHelper = {
-  assertCards: function (pid, expectedCards) {
+  assertCardsInHand: function (pid, expectedCards) {
     assert.deepStrictEqual(gameState().getCards(pid), expectedCards)
   },
   assertPlayerRoundScore(roundNumber, pid, expected) {
