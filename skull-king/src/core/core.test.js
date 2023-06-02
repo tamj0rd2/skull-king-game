@@ -20,7 +20,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCards(peter, ["peterCard1"])
 
   // round 1 bids take place
-  assert.equal(gameState().isRoundComplete(1), false)
+  testHelper.assertCurrentRoundIncomplete()
   testHelper.assertCurrentTrickNumber(undefined) // trick taking doesn't begin until bids are complete
   dispatchGameEvent(new BidEvent(tam, 1))
   dispatchGameEvent(new BidEvent(peter, 0))
@@ -30,6 +30,7 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertPlayerRoundScore(1, peter, new PlayerRoundScoreCard({bid: 0}))
 
   // the current trick is empty since no cards have been played yet
+  testHelper.assertCurrentTrickIncomplete()
   testHelper.assertCurrentTrickNumber(1)
   testHelper.assertCurrentTrick([])
 
@@ -44,15 +45,16 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}, {cardId: "peterCard1", playerId: peter}])
 
   // the scores are calculated, assuming that tam won
+  testHelper.assertCurrentTrickComplete()
   testHelper.assertCurrentTrickWinner(tam)
   testHelper.assertPlayerRoundScore(1, tam, new PlayerRoundScoreCard({bid: 1, wins: 1, score: 20}))
   testHelper.assertPlayerRoundScore(1, peter, new PlayerRoundScoreCard({bid: 0, wins: 0, score: 10}))
-  assert.equal(gameState().isRoundComplete(1), true)
+  testHelper.assertCurrentRoundComplete()
 
   //=======ROUND 2========
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(2)
-  assert.equal(gameState().isRoundComplete(2), false)
+  testHelper.assertCurrentRoundIncomplete()
   testHelper.assertCurrentTrickNumber(undefined)
   testHelper.assertAllPlayersHaveCards(2)
   testHelper.assertAllPlayersHaveEmptyBidsAndScore()
@@ -62,6 +64,7 @@ test("smoke test for playing a 2 player game", (t) => {
   dispatchGameEvent(new BidEvent(tam, 0))
   dispatchGameEvent(new BidEvent(peter, 1))
   testHelper.assertCurrentTrickNumber(1)
+  testHelper.assertCurrentTrickIncomplete()
 
   // tam plays a card which goes into the current trick
   dispatchGameEvent(new PlayCardEvent(tam, "tamCard1"))
@@ -74,13 +77,15 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrick([{cardId: "tamCard1", playerId: tam}, {cardId: "peterCard2", playerId: peter}])
 
   // assume that tam won the first trick
+  testHelper.assertCurrentTrickComplete()
   testHelper.assertCurrentTrickNumber(1)
   testHelper.assertCurrentTrickWinner(tam)
-  assert.equal(gameState().isRoundComplete(2), false)
+  testHelper.assertCurrentRoundIncomplete()
 
   // play the second trick
   dispatchGameEvent(new StartNextTrickEvent())
   testHelper.assertCurrentTrickNumber(2)
+  testHelper.assertCurrentTrickIncomplete()
   dispatchGameEvent(new PlayCardEvent(tam, "tamCard2"))
   dispatchGameEvent(new PlayCardEvent(peter, "peterCard1"))
   testHelper.assertCards(tam, [])
@@ -88,11 +93,12 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentTrick([{cardId: "tamCard2", playerId: tam}, {cardId: "peterCard1", playerId: peter}])
 
   // the scores reflect that tam won both tricks
+  testHelper.assertCurrentTrickComplete()
   testHelper.assertCurrentTrickNumber(2)
   testHelper.assertCurrentTrickWinner(tam)
   testHelper.assertPlayerRoundScore(2, tam, new PlayerRoundScoreCard({bid: 0, wins: 2, score: -20}))
   testHelper.assertPlayerRoundScore(2, peter, new PlayerRoundScoreCard({bid: 1, wins: 0, score: -10}))
-  assert.equal(gameState().isRoundComplete(2), true)
+  testHelper.assertCurrentRoundComplete()
 
   // and the next round can be started and initiated
   dispatchGameEvent(new StartNextRoundEvent())
@@ -132,10 +138,22 @@ const testHelper = {
       assert.deepStrictEqual(g.getScoreBoardByRounds()[roundNumber - 1][pid], new PlayerRoundScoreCard())
     })
   },
+  assertCurrentTrickIncomplete() {
+    assert.deepStrictEqual(gameState().isCurrentTrickComplete(), false)
+  },
+  assertCurrentTrickComplete() {
+    assert.deepStrictEqual(gameState().isCurrentTrickComplete(), true)
+  },
   assertCurrentTrickWinner(expectedWinnerPid) {
     assert.deepStrictEqual(gameState().getCurrentTrickWinner(), expectedWinnerPid)
   },
   assertCurrentTrickNumber(expectedTrickNo) {
     assert.deepStrictEqual(gameState().getCurrentTrickNumber(), expectedTrickNo)
+  },
+  assertCurrentRoundIncomplete() {
+    assert.equal(gameState().isCurrentRoundComplete(), false)
+  },
+  assertCurrentRoundComplete() {
+    assert.equal(gameState().isCurrentRoundComplete(), true)
   }
 }

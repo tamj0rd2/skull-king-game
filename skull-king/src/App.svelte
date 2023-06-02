@@ -1,13 +1,12 @@
 <script>
-  import PlayerBet from "./lib/PlayerBet.svelte";
-  import Hand from "./lib/Hand.svelte";
-  import {game} from "./core/core.js";
   import PlayerUI from "./lib/PlayerUI.svelte";
-
+  import Admin from "./lib/Admin.svelte";
 </script>
 
 <main>
-  <PlayerUI playerId="tam" />
+  <Admin />
+  <hr />
+  <PlayerUI playerId="tam" isHost />
   <hr />
   <PlayerUI playerId="peter" />
 </main>

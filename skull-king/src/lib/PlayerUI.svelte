@@ -1,15 +1,24 @@
 <script>
   import PlayerBet from "./PlayerBet.svelte";
   import Hand from "./Hand.svelte";
-  import {game} from "../core/core.js";
+  import {
+    BidEvent,
+    dispatchGameEvent,
+    game,
+    PlayCardEvent,
+    StartNextRoundEvent,
+    StartNextTrickEvent
+  } from "../core/core.js";
 
   export let playerId
+  export let isHost = false
 
   function totalScore(rounds) {
-    return "todo"
+    return rounds.reduce((tot, {score}) => tot + (score ?? 0), 0)
   }
 
   $: alreadyBid = $game.getRoundScoreBoard()[playerId].bid !== undefined
+
 </script>
 
 <div>
@@ -38,11 +47,22 @@
           <li>{playerId}: {cardId}</li>
         {/each}
       </ul>
-      {#if !!$game.getCurrentTrickWinner()}
+      {#if $game.isCurrentTrickComplete()}
         <p><strong>{$game.getCurrentTrickWinner()}</strong> won trick {$game.getCurrentTrickNumber()}</p>
       {/if}
     </section>
+
+    {#if isHost && $game.isCurrentTrickComplete()}
+      {#if $game.isCurrentRoundComplete() && $game.getRoundNumber() !== 10}
+        <button on:click={() => dispatchGameEvent(new StartNextRoundEvent())}>Start next round</button>
+      {/if}
+
+      {#if !$game.isCurrentRoundComplete()}
+        <button on:click={() => dispatchGameEvent(new StartNextTrickEvent())}>Start next trick</button>
+      {/if}
+    {/if}
   {/if}
+
   <section>
     <h2>Scoreboard</h2>
     <table>

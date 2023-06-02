@@ -3,7 +3,7 @@
 
   export let playerId
   $: cards = $game.getCards(playerId)
-  $: canPlayCards = $game.hasEveryoneBid()
+  $: canPlayCards = $game.hasEveryoneBid() && $game.getCards(playerId).length > ($game.getRoundNumber() - $game.getCurrentTrickNumber())
 
   function handlePlayCard(cardId) {
     if (confirm(`card played ${cardId}`)) {

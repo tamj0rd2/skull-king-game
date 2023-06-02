@@ -73,8 +73,12 @@ class Game {
     return this._currentTrickWinner
   }
 
-  isRoundComplete(roundNo) {
-    return Object.values(this._scoreBoard[roundNo - 1]).reduce((tot, {wins}) => tot + wins, 0) === roundNo
+  isCurrentRoundComplete() {
+    return Object.values(this.getRoundScoreBoard()).reduce((tot, {wins}) => tot + wins, 0) === this.getRoundNumber()
+  }
+
+  isCurrentTrickComplete() {
+    return this._currentTrick.length === this.getPlayers().length
   }
 
   _handleBidEvent(e) {
@@ -88,8 +92,7 @@ class Game {
   _handlePlayCardEvent(e) {
     this._playCard(e)
 
-    const isTrickComplete = this._currentTrick.length === this.getPlayers().length
-    if (!isTrickComplete) return
+    if (!this.isCurrentTrickComplete()) return
 
     // pretend that tam won
     this._currentTrickWinner = "tam"
@@ -98,7 +101,7 @@ class Game {
 
     const isRoundDone = this._trickIndex === this._roundIndex
     if (!isRoundDone) return
-    
+
     this.getPlayers().forEach((pid) => {
       this._scoreBoard[this._roundIndex][pid].score = this._calculateScore(pid)
     })
