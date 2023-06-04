@@ -3,22 +3,87 @@ export const SUIT_YELLOW = "yellow"
 export const SUIT_BLUE = "blue"
 export const SUIT_BLACK = "black"
 
-export class NumberedCard {
-  constructor(suit, number) {
-    this.suit = suit
-    this.number = number
-    this.id = `${suit}${number}`
-  }
-}
-
 export const SPECIAL_PIRATE = "pirate"
 export const SPECIAL_MERMAID = "mermaid"
 export const SPECIAL_SKULLKING = "skullking"
 export const SPECIAL_SCARYMARY = "scarymary"
 export const SPECIAL_FLAG = "flag"
 
+export class Trick {
+  constructor(playerCount) {
+    this._plays = []
+    this._highestPlay = undefined
+    this._playerCount = playerCount
+  }
+
+  addCard(playerId, card) {
+    const play = {playerId, card}
+    this._plays.push(play)
+
+    const highestCard = this._highestPlay?.card
+    if (!highestCard) return this._highestPlay = play
+
+    if (card instanceof NumberedCard) {
+      return this._highestPlay = card._ranksHigherThan(highestCard) ? play : this._highestPlay
+    }
+
+    if (highestCard instanceof NumberedCard) return this._highestPlay = play
+    if (card.suit === highestCard.suit) return
+
+    switch (card.suit) {
+      case SPECIAL_MERMAID:
+        if (this._plays.find((p) => p.card.suit === SPECIAL_SKULLKING)) return this._highestPlay = play
+        if (this._plays.every((p) => p.card.suit !== SPECIAL_PIRATE)) return this._highestPlay = play
+        return
+      case SPECIAL_PIRATE:
+        if (!this._plays.find((p) => p.card.suit === SPECIAL_SKULLKING)) return this._highestPlay = play
+        return
+      case SPECIAL_SKULLKING:
+        if (!this._plays.find((p) => p.card.suit === SPECIAL_MERMAID)) return this._highestPlay = play
+        return
+      default:
+        throw new Error(`could not compare ${card.id} to highest card ${highestCard.id}`)
+    }
+  }
+
+  getCards() {
+    return [...this._plays]
+  }
+
+  getWinner() {
+    return this._plays.length === this._playerCount
+      ? this._highestPlay.playerId
+      : undefined
+  }
+}
+
+export class NumberedCard {
+  constructor(suit, number) {
+    if (![SUIT_YELLOW, SUIT_RED, SUIT_BLACK, SUIT_BLUE].includes(suit)) {
+      throw new Error(`${suit} cannot be a numbered card`)
+    }
+
+    this.suit = suit
+    this.number = number
+    this.id = `${suit}${number}`
+  }
+
+  _ranksHigherThan(otherCard) {
+    if (otherCard instanceof NumberedCard) {
+      if (otherCard.suit === this.suit) return this.number > otherCard.number
+      return this.suit === SUIT_BLACK
+    }
+
+    return otherCard.suit === SPECIAL_FLAG
+  }
+}
+
 export class SpecialCard {
   constructor(suit, instance) {
+    if ([SUIT_YELLOW, SUIT_RED, SUIT_BLACK, SUIT_BLUE].includes(suit)) {
+      throw new Error(`${suit} cannot be a special card`)
+    }
+
     this.suit = suit
     this.id = `${suit}${instance}`
   }

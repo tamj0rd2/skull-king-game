@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import {Deck} from "./cards.js";
+import {Deck, Trick} from "./cards.js";
 
 export class PlayerRoundScoreCard {
   constructor({ bid, wins, score } = {}) {
@@ -17,7 +17,7 @@ class Game {
   reset() {
     this._roundIndex = -1
     this._hands = {}
-    this._currentTrick = []
+    this._currentTrick = undefined
     this._currentTrickWinner = undefined
     this._trickIndex = undefined
   }
@@ -75,7 +75,7 @@ class Game {
   }
 
   getCardsInTrick() {
-    return this._currentTrick
+    return this._currentTrick.getCards()
   }
 
   getCurrentTrickWinner() {
@@ -87,7 +87,7 @@ class Game {
   }
 
   isCurrentTrickComplete() {
-    return this._currentTrick.length === this.getPlayers().length
+    return !!this._currentTrick.getWinner()
   }
 
   _handleBidEvent(e) {
@@ -104,7 +104,7 @@ class Game {
     if (!this.isCurrentTrickComplete()) return
 
     // pretend that tam won
-    this._currentTrickWinner = "tam"
+    this._currentTrickWinner = this._currentTrick.getWinner()
     const currentWins = this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins || 0
     this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins = currentWins + 1
 
@@ -122,7 +122,7 @@ class Game {
     if (cardIndex < 0) throw new Error(ERROR_CARD_NOT_IN_HAND)
 
     this._hands[e.playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
-    this._currentTrick = [...this._currentTrick, {card: e.card, playerId: e.playerId}]
+    this._currentTrick.addCard(e.playerId, e.card)
   }
 
   _calculateScore(playerId) {
@@ -140,7 +140,7 @@ class Game {
   }
 
   _clearTrick() {
-    this._currentTrick = []
+    this._currentTrick = new Trick(this.getPlayers().length)
     this._currentTrickWinner = undefined
   }
 

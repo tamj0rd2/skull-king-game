@@ -1,4 +1,4 @@
-import test, {beforeEach} from 'node:test'
+import test, {afterEach, beforeEach} from 'node:test'
 import assert from 'node:assert'
 import {
   BidEvent,
@@ -9,21 +9,19 @@ import {
   StartNextRoundEvent, StartNextTrickEvent
 } from "./core.js";
 import { get } from 'svelte/store';
-import {Deck} from "./cards.js";
+import {Deck, NumberedCard, SUIT_BLUE} from "./cards.js";
 
 class DeckDouble {
   _deals = []
 
-  setupDeals(roundNumber) {
-    const testDeck = new Deck()
-    const tamCards = testDeck.takeRandomCards(roundNumber)
-    const peterCards = testDeck.takeRandomCards(roundNumber)
-    this._deals.push(tamCards, peterCards)
-    return [tamCards, peterCards]
+  queueDeals(...deals) {
+    this._deals.push(...deals)
   }
 
   takeRandomCards(count) {
-    return this._deals.shift()
+    const cards = this._deals.shift()
+    if (cards === undefined) throw new Error("did you forget to use queueDeals?")
+    return cards
   }
 
   reset() {
@@ -34,13 +32,15 @@ const tam = "tam"
 const peter = "peter"
 const deckDouble = new DeckDouble()
 
-beforeEach(() => {
-  deckDouble.reset()
+afterEach(() => {
+  deckDouble._deals = []
   gameState().reset()
 })
 
 test("smoke test for playing a 2 player game", (t) => {
-  let [tamCards, peterCards] = deckDouble.setupDeals(1)
+  let tamCards = [new NumberedCard(SUIT_BLUE, 5)]
+  let peterCards = [new NumberedCard(SUIT_BLUE, 4)]
+  deckDouble.queueDeals(tamCards, peterCards)
   gameState().start([tam, peter], deckDouble)
 
   // tam and peter both start with 1 card for the first round
@@ -82,7 +82,10 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentRoundComplete()
 
   //=======ROUND 2========
-  ;[tamCards, peterCards] = deckDouble.setupDeals(2)
+  tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_BLUE, 6)]
+  peterCards = [new NumberedCard(SUIT_BLUE, 4), new NumberedCard(SUIT_BLUE, 3)]
+  deckDouble.queueDeals(tamCards, peterCards)
+
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(2)
   testHelper.assertCurrentRoundIncomplete()
@@ -132,7 +135,10 @@ test("smoke test for playing a 2 player game", (t) => {
   testHelper.assertCurrentRoundComplete()
 
   // and the next round can be started and initiated
-  ;[tamCards, peterCards] = deckDouble.setupDeals(3)
+  tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_BLUE, 6), new NumberedCard(SUIT_BLUE, 7)]
+  peterCards = [new NumberedCard(SUIT_BLUE, 4), new NumberedCard(SUIT_BLUE, 3), new NumberedCard(SUIT_BLUE, 2)]
+  deckDouble.queueDeals(tamCards, peterCards)
+
   dispatchGameEvent(new StartNextRoundEvent())
   testHelper.assertRoundNumber(3)
   testHelper.assertAllPlayersHaveCards(3)
@@ -141,8 +147,10 @@ test("smoke test for playing a 2 player game", (t) => {
 })
 
 test("a player cannot play a card that isn't in their hand", () => {
-  let [tamCards, peterCards] = deckDouble.setupDeals(1)
-  gameState().start([tam, peter])
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_BLUE, 6), new NumberedCard(SUIT_BLUE, 7)]
+  const peterCards = [new NumberedCard(SUIT_BLUE, 4), new NumberedCard(SUIT_BLUE, 3), new NumberedCard(SUIT_BLUE, 2)]
+  deckDouble.queueDeals(tamCards, peterCards)
+  gameState().start([tam, peter], deckDouble)
 
   dispatchGameEvent(new BidEvent(tam, 0))
   dispatchGameEvent(new BidEvent(peter, 0))
