@@ -2,10 +2,12 @@ import { writable } from 'svelte/store';
 import {Deck, NumberedCard, SpecialCard, Trick} from "./cards.js";
 
 export class PlayerRoundScoreCard {
-  constructor({ bid, wins, score } = {}) {
+  constructor({ bid, wins, score, skullKingsCaptured, piratesCaptured } = {}) {
     this.bid = bid
     this.wins = wins ?? 0
     this.score = score
+    this.skullKingsCaptured = skullKingsCaptured ?? 0
+    this.piratesCaptured = piratesCaptured ?? 0
   }
 }
 
@@ -103,10 +105,12 @@ class Game {
 
     if (!this.isCurrentTrickComplete()) return
 
-    // pretend that tam won
-    this._currentTrickWinner = this._currentTrick.getWinner()
-    const currentWins = this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins || 0
-    this._scoreBoard[this._roundIndex][this._currentTrickWinner].wins = currentWins + 1
+    const { winner, skullKingsCaptured, piratesCaptured } = this._currentTrick.getResult()
+    this._currentTrickWinner = winner
+    const playerScoreCard = this._scoreBoard[this._roundIndex][this._currentTrickWinner]
+    playerScoreCard.wins = (playerScoreCard.wins ?? 0) + 1
+    playerScoreCard.skullKingsCaptured += skullKingsCaptured
+    playerScoreCard.piratesCaptured += piratesCaptured
 
     const isRoundDone = this._trickIndex === this._roundIndex
     if (!isRoundDone) return
@@ -130,10 +134,13 @@ class Game {
   }
 
   _calculateScore(playerId) {
-    const { bid, wins } = this._scoreBoard[this._roundIndex][playerId]
+    const { bid, wins, skullKingsCaptured, piratesCaptured } = this._scoreBoard[this._roundIndex][playerId]
     const roundNumber = this.getRoundNumber()
     if (bid === 0) return wins === 0 ? 10 * roundNumber : -10 * roundNumber
-    if (bid === wins) return wins * 20
+
+    if (bid === wins) {
+      return (wins * 20) + (skullKingsCaptured * 50) + (piratesCaptured * 30)
+    }
     return Math.abs(bid - wins) * -10
   }
 

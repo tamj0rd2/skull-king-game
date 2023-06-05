@@ -9,7 +9,16 @@ import {
   StartNextRoundEvent, StartNextTrickEvent
 } from "./core.js";
 import { get } from 'svelte/store';
-import {Deck, NumberedCard, SPECIAL_PIRATE, SpecialCard, SUIT_BLACK, SUIT_BLUE, SUIT_RED} from "./cards.js";
+import {
+  Deck,
+  NumberedCard,
+  SPECIAL_MERMAID,
+  SPECIAL_PIRATE, SPECIAL_SKULLKING,
+  SpecialCard,
+  SUIT_BLACK,
+  SUIT_BLUE,
+  SUIT_RED
+} from "./cards.js";
 
 class DeckDouble {
   _deals = []
@@ -239,6 +248,65 @@ test("when tam plays red and peter doesn't have a red, peter can play a special 
   dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
   assert.equal(gameState().canPlayCard(peter, specialCard), true)
   assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
+})
+
+test("capturing", {only: true}, async (t) => {
+  const cases = [
+    {
+      captor: SPECIAL_MERMAID,
+      captive: SPECIAL_SKULLKING,
+      successScore: {bid: 1, wins: 1, score: 70, skullKingsCaptured: 1},
+      failureScore: {bid: 2, wins: 1, score: -10, skullKingsCaptured: 1},
+    },
+    {
+      captor: SPECIAL_SKULLKING,
+      captive: SPECIAL_PIRATE,
+      successScore: {bid: 1, wins: 1, score: 50, piratesCaptured: 1},
+      failureScore: {bid: 2, wins: 1, score: -10, piratesCaptured: 1},
+    },
+  ]
+
+  for (const {captor, captive, successScore, failureScore} of cases) {
+    await t.test(`tam receives bonus points for capturing ${captive} with ${captor} AND meeting her bid`, () => {
+      const tamCards = [new NumberedCard(SUIT_BLUE, 5), new SpecialCard(captor, 1)]
+      const peterCards = [new NumberedCard(SUIT_BLUE, 6), new SpecialCard(captive, 1)]
+      testHelper.startAtRound(2, tamCards, peterCards)
+
+      dispatchGameEvent(new BidEvent(tam, 1))
+      dispatchGameEvent(new BidEvent(peter, 1))
+
+      dispatchGameEvent(new PlayCardEvent(peter, peterCards[1]))
+      dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+      testHelper.assertCurrentTrickWinner(tam)
+
+      dispatchGameEvent(new StartNextTrickEvent())
+      dispatchGameEvent(new PlayCardEvent(tam, tamCards[0]))
+      dispatchGameEvent(new PlayCardEvent(peter, peterCards[0]))
+      testHelper.assertCurrentTrickWinner(peter)
+
+      testHelper.assertPlayerRoundScore(2, tam, new PlayerRoundScoreCard(successScore))
+    })
+
+    await t.test(`tam doesn't receive bonus points for capturing ${captive} with ${captor} if her bid is not met`, () => {
+      const tamCards = [new NumberedCard(SUIT_BLUE, 5), new SpecialCard(captor, 1)]
+      const peterCards = [new NumberedCard(SUIT_BLUE, 6), new SpecialCard(captive, 1)]
+      testHelper.startAtRound(2, tamCards, peterCards)
+
+      dispatchGameEvent(new BidEvent(tam, 2))
+      dispatchGameEvent(new BidEvent(peter, 1))
+
+      dispatchGameEvent(new PlayCardEvent(peter, peterCards[1]))
+      dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+      testHelper.assertCurrentTrickWinner(tam)
+
+      dispatchGameEvent(new StartNextTrickEvent())
+      dispatchGameEvent(new PlayCardEvent(tam, tamCards[0]))
+      dispatchGameEvent(new PlayCardEvent(peter, peterCards[0]))
+      testHelper.assertCurrentTrickWinner(peter)
+
+      testHelper.assertPlayerRoundScore(2, tam, new PlayerRoundScoreCard(failureScore))
+    })
+  }
 })
 
 function gameState() {

@@ -64,6 +64,21 @@ export class Trick {
       ? this._highestPlay.playerId
       : undefined
   }
+
+  getResult() {
+    if (this._plays.length !== this._playerCount) return
+    const result = {winner: this.getWinner(), skullKingsCaptured: 0, piratesCaptured: 0}
+
+    if (this._highestPlay.card.suit === SPECIAL_MERMAID && !!this._plays.find(({card}) => card.suit === SPECIAL_SKULLKING)) {
+      result.skullKingsCaptured = 1
+    }
+
+    if (this._highestPlay.card.suit === SPECIAL_SKULLKING) {
+      result.piratesCaptured += this._plays.filter(({card}) => card.suit === SPECIAL_PIRATE).length
+    }
+
+    return result
+  }
 }
 
 export class NumberedCard {
