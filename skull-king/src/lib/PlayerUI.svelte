@@ -43,7 +43,7 @@
       <h2>Cards in trick</h2>
       <ul>
         {#each $game.getCardsInTrick() as {card, playerId} (card)}
-          <li>{playerId}: {card}</li>
+          <li>{playerId}: {card.id}</li>
         {/each}
       </ul>
       {#if $game.isCurrentTrickComplete()}

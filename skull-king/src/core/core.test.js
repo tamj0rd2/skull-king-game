@@ -2,20 +2,28 @@ import test, {afterEach, beforeEach} from 'node:test'
 import assert from 'node:assert'
 import {
   BidEvent,
-  dispatchGameEvent, ERROR_CARD_NOT_IN_HAND,
+  dispatchGameEvent, ERROR_CARD_DOES_NOT_MATCH_SUIT, ERROR_CARD_NOT_IN_HAND,
   game as gameStore,
   PlayCardEvent,
   PlayerRoundScoreCard,
   StartNextRoundEvent, StartNextTrickEvent
 } from "./core.js";
 import { get } from 'svelte/store';
-import {Deck, NumberedCard, SUIT_BLUE} from "./cards.js";
+import {Deck, NumberedCard, SPECIAL_PIRATE, SpecialCard, SUIT_BLACK, SUIT_BLUE, SUIT_RED} from "./cards.js";
 
 class DeckDouble {
   _deals = []
 
   queueDeals(...deals) {
     this._deals.push(...deals)
+  }
+
+  setupRandomDeals(count) {
+    const deck = new Deck()
+    const tamCards = deck.takeRandomCards(count)
+    const peterCards = deck.takeRandomCards(count)
+    this.queueDeals(tamCards, peterCards)
+    return [tamCards, peterCards]
   }
 
   takeRandomCards(count) {
@@ -147,8 +155,8 @@ test("smoke test for playing a 2 player game", (t) => {
 })
 
 test("a player cannot play a card that isn't in their hand", () => {
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_BLUE, 6), new NumberedCard(SUIT_BLUE, 7)]
-  const peterCards = [new NumberedCard(SUIT_BLUE, 4), new NumberedCard(SUIT_BLUE, 3), new NumberedCard(SUIT_BLUE, 2)]
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5)]
+  const peterCards = [new NumberedCard(SUIT_BLUE, 4)]
   deckDouble.queueDeals(tamCards, peterCards)
   gameState().start([tam, peter], deckDouble)
 
@@ -158,6 +166,79 @@ test("a player cannot play a card that isn't in their hand", () => {
     () => dispatchGameEvent(new PlayCardEvent(tam, peterCards[0])),
     {message: ERROR_CARD_NOT_IN_HAND}
   )
+})
+
+test("when tam plays red and peter has a red, peter is allowed to play it", (t) => {
+  const petersRed = new NumberedCard(SUIT_RED, 6)
+
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+  const peterCards = [petersRed, new SpecialCard(SPECIAL_PIRATE, 1)]
+  testHelper.startAtRound(2, tamCards, peterCards)
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  assert.equal(gameState().canPlayCard(peter, petersRed), true)
+  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, petersRed)))
+})
+
+test("when tam plays red and peter has a red, peter can play a special card", (t) => {
+  const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
+
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+  const peterCards = [new NumberedCard(SUIT_RED, 6), specialCard]
+  testHelper.startAtRound(2, tamCards, peterCards)
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  assert.equal(gameState().canPlayCard(peter, specialCard), true)
+  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
+})
+
+test("when tam plays red and peter has a red, peter cannot play any other numbered suit", () => {
+  const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
+
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+  const peterCards = [differentNumberedSuit, new NumberedCard(SUIT_RED, 8)]
+  testHelper.startAtRound(2, tamCards, peterCards)
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), false)
+  assert.throws(
+    () => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)),
+    {message: ERROR_CARD_DOES_NOT_MATCH_SUIT}
+  )
+})
+
+test("when tam plays red and peter doesn't have a red, peter can play a different numbered suit", (t) => {
+  const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
+
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+  const peterCards = [differentNumberedSuit, new SpecialCard(SPECIAL_PIRATE, 1)]
+  testHelper.startAtRound(2, tamCards, peterCards)
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), true)
+  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)))
+})
+
+test("when tam plays red and peter doesn't have a red, peter can play a special card", (t) => {
+  const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
+
+  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+  const peterCards = [new NumberedCard(SUIT_BLACK, 6), specialCard]
+  testHelper.startAtRound(2, tamCards, peterCards)
+  dispatchGameEvent(new BidEvent(tam, 0))
+  dispatchGameEvent(new BidEvent(peter, 0))
+
+  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+  assert.equal(gameState().canPlayCard(peter, specialCard), true)
+  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
 })
 
 function gameState() {
@@ -207,5 +288,22 @@ const testHelper = {
   },
   assertCurrentRoundComplete() {
     assert.equal(gameState().isCurrentRoundComplete(), true)
+  },
+  startAtRound(targetRoundNum, ...deals) {
+    deckDouble.setupRandomDeals(1)
+    gameState().start([tam, peter], deckDouble)
+
+    gameState().getPlayers().forEach((pid) => dispatchGameEvent(new BidEvent(pid, 0)))
+
+    while (gameState().getCurrentTrickNumber() < gameState().getRoundNumber()) {
+      gameState().getPlayers().forEach((pid) => dispatchGameEvent(new PlayCardEvent(pid, gameState().getCards(pid)[0])))
+      dispatchGameEvent(new StartNextTrickEvent())
+    }
+
+    gameState().getPlayers().forEach((pid) => dispatchGameEvent(new PlayCardEvent(pid, gameState().getCards(pid)[0])))
+    deckDouble.queueDeals(...deals)
+    dispatchGameEvent(new StartNextRoundEvent())
+
+    testHelper.assertRoundNumber(targetRoundNum)
   }
 }

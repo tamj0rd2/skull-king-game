@@ -6,9 +6,7 @@
   $: canPlayCards = $game.hasEveryoneBid() && $game.getCards(playerId).length > ($game.getRoundNumber() - $game.getCurrentTrickNumber())
 
   function handlePlayCard(card) {
-    if (confirm(`card played ${card}`)) {
-      dispatchGameEvent(new PlayCardEvent(playerId, card))
-    }
+    dispatchGameEvent(new PlayCardEvent(playerId, card))
   }
 </script>
 
@@ -18,7 +16,7 @@
     {#each cards as card}
       <li>
         {card.suit} {card.number ?? ""}
-        {#if canPlayCards}
+        {#if canPlayCards && $game.canPlayCard(playerId, card)}
           <button on:click={() => handlePlayCard(card)}>Play card</button>
         {/if}
       </li>

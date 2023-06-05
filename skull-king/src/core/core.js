@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import {Deck, Trick} from "./cards.js";
+import {Deck, NumberedCard, SpecialCard, Trick} from "./cards.js";
 
 export class PlayerRoundScoreCard {
   constructor({ bid, wins, score } = {}) {
@@ -116,13 +116,17 @@ class Game {
     })
   }
 
-  _playCard(e) {
-    const playerCards = this._hands[e.playerId]
-    const cardIndex = playerCards.indexOf(e.card)
+  _playCard({playerId, card}) {
+    if (!this.canPlayCard(playerId, card)) {
+      throw new Error(ERROR_CARD_DOES_NOT_MATCH_SUIT)
+    }
+
+    const playerCards = this._hands[playerId]
+    const cardIndex = playerCards.indexOf(card)
     if (cardIndex < 0) throw new Error(ERROR_CARD_NOT_IN_HAND)
 
-    this._hands[e.playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
-    this._currentTrick.addCard(e.playerId, e.card)
+    this._hands[playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
+    this._currentTrick.addCard(playerId, card)
   }
 
   _calculateScore(playerId) {
@@ -147,6 +151,16 @@ class Game {
   getCurrentTrickNumber() {
     if (this._trickIndex !== undefined) return this._trickIndex + 1
     return undefined
+  }
+
+  // TODO: this should probably live on the Trick type
+  canPlayCard(playerId, card) {
+    if (card instanceof SpecialCard) return true
+
+    const suit = this._currentTrick.getSuit()
+    if (!suit) return true
+
+    return card.suit === suit || !this.getCards(playerId).some((c) => c.suit === suit)
   }
 }
 
@@ -192,3 +206,4 @@ export function dispatchGameEvent(e) {
 }
 
 export const ERROR_CARD_NOT_IN_HAND = "cannot play a card that is not in your hand"
+export const ERROR_CARD_DOES_NOT_MATCH_SUIT = "suit rule..."

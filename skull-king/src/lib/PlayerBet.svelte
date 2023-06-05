@@ -8,9 +8,7 @@
   $: possibleBids = new Array(roundNumber + 1).fill(0).map((_, i) => i)
 
   function confirmBid() {
-    if (confirm(`Are you sure you want to bid ${selectedBid}?`)) {
-      dispatchGameEvent(new BidEvent(playerId, selectedBid))
-    }
+    dispatchGameEvent(new BidEvent(playerId, selectedBid))
   }
 </script>
 

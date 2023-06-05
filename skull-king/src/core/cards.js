@@ -13,6 +13,7 @@ export class Trick {
   constructor(playerCount) {
     this._plays = []
     this._highestPlay = undefined
+    this._suit = undefined
     this._playerCount = playerCount
   }
 
@@ -20,10 +21,12 @@ export class Trick {
     const play = {playerId, card}
     this._plays.push(play)
 
+    if (card instanceof NumberedCard && !this._suit) this._suit = card.suit
     const highestCard = this._highestPlay?.card
     if (!highestCard) return this._highestPlay = play
 
     if (card instanceof NumberedCard) {
+      if (!this._suit) this._suit = card.suit
       return this._highestPlay = card._ranksHigherThan(highestCard) ? play : this._highestPlay
     }
 
@@ -31,6 +34,8 @@ export class Trick {
     if (card.suit === highestCard.suit) return
 
     switch (card.suit) {
+      case SPECIAL_FLAG:
+        return
       case SPECIAL_MERMAID:
         if (this._plays.find((p) => p.card.suit === SPECIAL_SKULLKING)) return this._highestPlay = play
         if (this._plays.every((p) => p.card.suit !== SPECIAL_PIRATE)) return this._highestPlay = play
@@ -48,6 +53,10 @@ export class Trick {
 
   getCards() {
     return [...this._plays]
+  }
+
+  getSuit() {
+    return this._suit
   }
 
   getWinner() {
