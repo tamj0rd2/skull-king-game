@@ -177,80 +177,82 @@ test("a player cannot play a card that isn't in their hand", () => {
   )
 })
 
-test("when tam plays red and peter has a red, peter is allowed to play it", (t) => {
-  const petersRed = new NumberedCard(SUIT_RED, 6)
+test("suit rules", async () => {
+  await test("when tam plays red and peter has a red, peter is allowed to play it", (t) => {
+    const petersRed = new NumberedCard(SUIT_RED, 6)
 
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
-  const peterCards = [petersRed, new SpecialCard(SPECIAL_PIRATE, 1)]
-  testHelper.startAtRound(2, tamCards, peterCards)
-  dispatchGameEvent(new BidEvent(tam, 0))
-  dispatchGameEvent(new BidEvent(peter, 0))
+    const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+    const peterCards = [petersRed, new SpecialCard(SPECIAL_PIRATE, 1)]
+    testHelper.startAtRound(2, tamCards, peterCards)
+    dispatchGameEvent(new BidEvent(tam, 0))
+    dispatchGameEvent(new BidEvent(peter, 0))
 
-  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
-  assert.equal(gameState().canPlayCard(peter, petersRed), true)
-  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, petersRed)))
+    dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+    assert.equal(gameState().canPlayCard(peter, petersRed), true)
+    assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, petersRed)))
+  })
+
+  await test("when tam plays red and peter has a red, peter can play a special card", (t) => {
+    const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
+
+    const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+    const peterCards = [new NumberedCard(SUIT_RED, 6), specialCard]
+    testHelper.startAtRound(2, tamCards, peterCards)
+    dispatchGameEvent(new BidEvent(tam, 0))
+    dispatchGameEvent(new BidEvent(peter, 0))
+
+    dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+    assert.equal(gameState().canPlayCard(peter, specialCard), true)
+    assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
+  })
+
+  await test("when tam plays red and peter has a red, peter cannot play any other numbered suit", () => {
+    const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
+
+    const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+    const peterCards = [differentNumberedSuit, new NumberedCard(SUIT_RED, 8)]
+    testHelper.startAtRound(2, tamCards, peterCards)
+    dispatchGameEvent(new BidEvent(tam, 0))
+    dispatchGameEvent(new BidEvent(peter, 0))
+
+    dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+    assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), false)
+    assert.throws(
+      () => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)),
+      {message: ERROR_CARD_DOES_NOT_MATCH_SUIT}
+    )
+  })
+
+  await test("when tam plays red and peter doesn't have a red, peter can play a different numbered suit", (t) => {
+    const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
+
+    const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+    const peterCards = [differentNumberedSuit, new SpecialCard(SPECIAL_PIRATE, 1)]
+    testHelper.startAtRound(2, tamCards, peterCards)
+    dispatchGameEvent(new BidEvent(tam, 0))
+    dispatchGameEvent(new BidEvent(peter, 0))
+
+    dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+    assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), true)
+    assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)))
+  })
+
+  await test("when tam plays red and peter doesn't have a red, peter can play a special card", (t) => {
+    const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
+
+    const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
+    const peterCards = [new NumberedCard(SUIT_BLACK, 6), specialCard]
+    testHelper.startAtRound(2, tamCards, peterCards)
+    dispatchGameEvent(new BidEvent(tam, 0))
+    dispatchGameEvent(new BidEvent(peter, 0))
+
+    dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
+    assert.equal(gameState().canPlayCard(peter, specialCard), true)
+    assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
+  })
 })
 
-test("when tam plays red and peter has a red, peter can play a special card", (t) => {
-  const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
-
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
-  const peterCards = [new NumberedCard(SUIT_RED, 6), specialCard]
-  testHelper.startAtRound(2, tamCards, peterCards)
-  dispatchGameEvent(new BidEvent(tam, 0))
-  dispatchGameEvent(new BidEvent(peter, 0))
-
-  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
-  assert.equal(gameState().canPlayCard(peter, specialCard), true)
-  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
-})
-
-test("when tam plays red and peter has a red, peter cannot play any other numbered suit", () => {
-  const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
-
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
-  const peterCards = [differentNumberedSuit, new NumberedCard(SUIT_RED, 8)]
-  testHelper.startAtRound(2, tamCards, peterCards)
-  dispatchGameEvent(new BidEvent(tam, 0))
-  dispatchGameEvent(new BidEvent(peter, 0))
-
-  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
-  assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), false)
-  assert.throws(
-    () => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)),
-    {message: ERROR_CARD_DOES_NOT_MATCH_SUIT}
-  )
-})
-
-test("when tam plays red and peter doesn't have a red, peter can play a different numbered suit", (t) => {
-  const differentNumberedSuit = new NumberedCard(SUIT_BLACK, 6)
-
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
-  const peterCards = [differentNumberedSuit, new SpecialCard(SPECIAL_PIRATE, 1)]
-  testHelper.startAtRound(2, tamCards, peterCards)
-  dispatchGameEvent(new BidEvent(tam, 0))
-  dispatchGameEvent(new BidEvent(peter, 0))
-
-  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
-  assert.equal(gameState().canPlayCard(peter, differentNumberedSuit), true)
-  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, differentNumberedSuit)))
-})
-
-test("when tam plays red and peter doesn't have a red, peter can play a special card", (t) => {
-  const specialCard = new SpecialCard(SPECIAL_PIRATE, 1)
-
-  const tamCards = [new NumberedCard(SUIT_BLUE, 5), new NumberedCard(SUIT_RED, 2)]
-  const peterCards = [new NumberedCard(SUIT_BLACK, 6), specialCard]
-  testHelper.startAtRound(2, tamCards, peterCards)
-  dispatchGameEvent(new BidEvent(tam, 0))
-  dispatchGameEvent(new BidEvent(peter, 0))
-
-  dispatchGameEvent(new PlayCardEvent(tam, tamCards[1]))
-  assert.equal(gameState().canPlayCard(peter, specialCard), true)
-  assert.doesNotThrow(() => dispatchGameEvent(new PlayCardEvent(peter, specialCard)))
-})
-
-test("capturing", {only: true}, async (t) => {
+test("capturing", async (t) => {
   const cases = [
     {
       captor: SPECIAL_MERMAID,
