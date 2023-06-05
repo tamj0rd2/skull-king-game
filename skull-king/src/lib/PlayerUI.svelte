@@ -33,12 +33,25 @@
     <section>
       <h2>Bids</h2>
       <ul>
-        {#each Object.entries($game.getRoundScoreBoard()) as [pid, {bid}] (pid)}
-          <li>{pid}: {bid}</li>
+        {#each Object.entries($game.getRoundScoreBoard()) as [pid, {bid, wins}] (pid)}
+          <li><strong>{pid}</strong> | Bid: {bid} | Wins: {wins}</li>
         {/each}
       </ul>
-    </section>
 
+      {#if $game.isCurrentTrickComplete()}
+        <p><strong>{$game.getCurrentTrickWinner()}</strong> won trick {$game.getCurrentTrickNumber()}</p>
+      {/if}
+
+      {#if isHost && $game.isCurrentTrickComplete()}
+        {#if $game.isCurrentRoundComplete() && $game.getRoundNumber() !== 10}
+          <button on:click={() => dispatchGameEvent(new StartNextRoundEvent())}>Start next round</button>
+        {/if}
+
+        {#if !$game.isCurrentRoundComplete()}
+          <button on:click={() => dispatchGameEvent(new StartNextTrickEvent())}>Start next trick</button>
+        {/if}
+      {/if}
+    </section>
     <section>
       <h2>Cards in trick</h2>
       <ul>
@@ -46,20 +59,7 @@
           <li>{playerId}: {card.id}</li>
         {/each}
       </ul>
-      {#if $game.isCurrentTrickComplete()}
-        <p><strong>{$game.getCurrentTrickWinner()}</strong> won trick {$game.getCurrentTrickNumber()}</p>
-      {/if}
     </section>
-
-    {#if isHost && $game.isCurrentTrickComplete()}
-      {#if $game.isCurrentRoundComplete() && $game.getRoundNumber() !== 10}
-        <button on:click={() => dispatchGameEvent(new StartNextRoundEvent())}>Start next round</button>
-      {/if}
-
-      {#if !$game.isCurrentRoundComplete()}
-        <button on:click={() => dispatchGameEvent(new StartNextTrickEvent())}>Start next trick</button>
-      {/if}
-    {/if}
   {/if}
 
   <section>
