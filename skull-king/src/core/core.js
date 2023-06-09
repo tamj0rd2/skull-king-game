@@ -11,7 +11,7 @@ export class PlayerRoundScoreCard {
   }
 }
 
-class Game {
+export class Game {
   constructor() {
     this.reset()
   }
@@ -24,10 +24,11 @@ class Game {
     this._trickIndex = undefined
   }
 
-  start(players, deck) {
+  _start({players, deck}) {
     this._deck = deck ?? new Deck()
+    this._players = players
     this._scoreBoard = new Array(10).fill(0).map((_, i) => {
-      return this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})
+      return players.reduce((accum, pid) => ({...accum, [pid]: new PlayerRoundScoreCard()}), {})
     })
     this._startNextRound()
   }
@@ -35,7 +36,7 @@ class Game {
   _startNextRound() {
     this._roundIndex += 1
     this._deck.reset()
-    this._hands = this.getPlayers().reduce((accum, pid, i) => {
+    this._hands = this._players.reduce((accum, pid, i) => {
       return {...accum, [pid]: this._deck.takeRandomCards(this.getRoundNumber())}
     }, {})
     this._trickIndex = undefined
@@ -51,7 +52,7 @@ class Game {
   }
 
   getPlayers() {
-    return ["tam", "peter"]
+    return [...this._players]
   }
 
   getScoreBoardByRounds() {
@@ -59,7 +60,7 @@ class Game {
   }
 
   getScoreBoardByCompletedPlayerRounds() {
-    const initial = this.getPlayers().reduce((accum, pid) => ({...accum, [pid]: []}), {})
+    const initial = this._players.reduce((accum, pid) => ({...accum, [pid]: []}), {})
     return this._scoreBoard.reduce((accum, round) => {
       Object.entries(round).forEach(([pid, roundPlayerScoreCard]) => {
         accum[pid] = [...accum[pid], roundPlayerScoreCard]
@@ -115,7 +116,7 @@ class Game {
     const isRoundDone = this._trickIndex === this._roundIndex
     if (!isRoundDone) return
 
-    this.getPlayers().forEach((pid) => {
+    this._players.forEach((pid) => {
       this._scoreBoard[this._roundIndex][pid].score = this._calculateScore(pid)
     })
   }
@@ -126,7 +127,7 @@ class Game {
     }
 
     const playerCards = this._hands[playerId]
-    const cardIndex = playerCards.indexOf(card)
+    const cardIndex = playerCards.findIndex((c) => c.id === card.id)
     if (cardIndex < 0) throw new Error(ERROR_CARD_NOT_IN_HAND)
 
     this._hands[playerId] = [...playerCards.slice(0, cardIndex), ...playerCards.slice(cardIndex + 1)]
@@ -134,7 +135,9 @@ class Game {
   }
 
   _calculateScore(playerId) {
-    const { bid, wins, skullKingsCaptured, piratesCaptured } = this._scoreBoard[this._roundIndex][playerId]
+    const { bid, wins, skullKingsCaptured, piratesCaptured } = this.
+
+      _scoreBoard[this._roundIndex][playerId]
     const roundNumber = this.getRoundNumber()
     if (bid === 0) return wins === 0 ? 10 * roundNumber : -10 * roundNumber
 
@@ -151,7 +154,7 @@ class Game {
   }
 
   _clearTrick() {
-    this._currentTrick = new Trick(this.getPlayers().length)
+    this._currentTrick = new Trick(this._players.length)
     this._currentTrickWinner = undefined
   }
 
@@ -169,46 +172,71 @@ class Game {
 
     return card.suit === suit || !this.getCards(playerId).some((c) => c.suit === suit)
   }
+
+  handleEvent(e) {
+    switch(true) {
+      case e instanceof StartGameEvent:
+        return this._start(e)
+      case e instanceof BidEvent:
+        return this._handleBidEvent(e)
+      case e instanceof PlayCardEvent:
+        return this._handlePlayCardEvent(e)
+      case e instanceof StartNextRoundEvent:
+        return this._startNextRound(e)
+      case e instanceof StartNextTrickEvent:
+        return this._startNextTrick(e)
+      default:
+        throw new Error(`Unhandled event type - ${e.constructor}`)
+    }
+  }
 }
 
 export const game = writable(new Game());
 
 export class BidEvent {
+  static type = "bid"
+  type = BidEvent.type
+
   constructor(playerId, bid) {
     this.playerId = playerId
     this.bid = bid
   }
 }
 
+export class StartGameEvent {
+  static type = "start_game"
+  type = StartGameEvent.type
+
+  constructor(players, deck = new Deck()) {
+    this.players = players
+    this.deck = deck
+  }
+}
+
 export class PlayCardEvent {
+  static type = "play_card"
+  type = PlayCardEvent.type
+
   constructor(playerId, card) {
     this.playerId = playerId
     this.card = card
   }
 }
 
-export class StartNextRoundEvent {}
+export class StartNextRoundEvent {
+  static type = "start_next_round"
+  type = StartNextRoundEvent.type
+}
 
-export class StartNextTrickEvent {}
+export class StartNextTrickEvent {
+  static type = "start_next_trick"
+  type = StartNextTrickEvent.type
+}
 
 export function dispatchGameEvent(e) {
   game.update((g) => {
-    switch(true) {
-      case e instanceof BidEvent:
-        g._handleBidEvent(e)
-        return g
-      case e instanceof PlayCardEvent:
-        g._handlePlayCardEvent(e)
-        return g
-      case e instanceof StartNextRoundEvent:
-        g._startNextRound(e)
-        return g
-      case e instanceof StartNextTrickEvent:
-        g._startNextTrick(e)
-        return g
-      default:
-        throw new Error(`Unhandled event type - ${e.constructor}`)
-    }
+    g.handleEvent(e)
+    return g
   })
 }
 

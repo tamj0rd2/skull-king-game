@@ -1,9 +1,9 @@
 <script>
   import PlayerUI from "./lib/PlayerUI.svelte";
   import Admin from "./lib/Admin.svelte";
-  import {game} from "./core/core.js";
+  import {dispatchGameEvent, game, StartGameEvent} from "./core/core.js";
 
-  $game.start(["tam", "peter"])
+  dispatchGameEvent(new StartGameEvent(["tam", "peter"]))
 </script>
 
 <main>

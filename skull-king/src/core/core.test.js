@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import {
   BidEvent,
   dispatchGameEvent, ERROR_CARD_DOES_NOT_MATCH_SUIT, ERROR_CARD_NOT_IN_HAND,
-  game as gameStore,
+  game as gameStore, StartGameEvent,
   PlayCardEvent,
   PlayerRoundScoreCard,
   StartNextRoundEvent, StartNextTrickEvent
@@ -58,7 +58,7 @@ test("smoke test for playing a 2 player game", (t) => {
   let tamCards = [new NumberedCard(SUIT_BLUE, 5)]
   let peterCards = [new NumberedCard(SUIT_BLUE, 4)]
   deckDouble.queueDeals(tamCards, peterCards)
-  gameState().start([tam, peter], deckDouble)
+  dispatchGameEvent(new StartGameEvent([tam, peter], deckDouble))
 
   // tam and peter both start with 1 card for the first round
   testHelper.assertRoundNumber(1)
@@ -167,7 +167,7 @@ test("a player cannot play a card that isn't in their hand", () => {
   const tamCards = [new NumberedCard(SUIT_BLUE, 5)]
   const peterCards = [new NumberedCard(SUIT_BLUE, 4)]
   deckDouble.queueDeals(tamCards, peterCards)
-  gameState().start([tam, peter], deckDouble)
+  dispatchGameEvent(new StartGameEvent([tam, peter], deckDouble))
 
   dispatchGameEvent(new BidEvent(tam, 0))
   dispatchGameEvent(new BidEvent(peter, 0))
@@ -361,7 +361,7 @@ const testHelper = {
   },
   startAtRound(targetRoundNum, ...deals) {
     deckDouble.setupRandomDeals(1)
-    gameState().start([tam, peter], deckDouble)
+    dispatchGameEvent(new StartGameEvent([tam, peter], deckDouble))
 
     gameState().getPlayers().forEach((pid) => dispatchGameEvent(new BidEvent(pid, 0)))
 

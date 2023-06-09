@@ -46,6 +46,7 @@ export class Trick {
       case SPECIAL_SKULLKING:
         if (!this._plays.find((p) => p.card.suit === SPECIAL_MERMAID)) return this._highestPlay = play
         return
+      case SPECIAL_SCARYMARY:
       default:
         throw new Error(`could not compare ${card.id} to highest card ${highestCard.id}`)
     }
