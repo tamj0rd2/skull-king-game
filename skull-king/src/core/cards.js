@@ -36,6 +36,7 @@ export class Trick {
     if (card instanceof NumberedCard && !this._suit) this._suit = card.suit
     const highestCard = this._highestPlay?.card
     if (!highestCard) return this._highestPlay = play
+    if (card.suit === SPECIAL_FLAG) return
 
     if (card instanceof NumberedCard) {
       if (!this._suit) this._suit = card.suit
@@ -46,8 +47,6 @@ export class Trick {
     if (card.suit === highestCard.suit) return
 
     switch (card.suit) {
-      case SPECIAL_FLAG:
-        return
       case SPECIAL_MERMAID:
         if (this._plays.find((p) => p.card.suit === SPECIAL_SKULLKING)) return this._highestPlay = play
         if (this._plays.every((p) => p.card.suit !== SPECIAL_PIRATE)) return this._highestPlay = play

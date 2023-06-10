@@ -138,13 +138,37 @@ test("when everyone plays a flag, the first player to play it wins", () => {
 
 test("flags lose to", async (t) => {
   for (const specialSuit of [SPECIAL_PIRATE, SPECIAL_SKULLKING, SPECIAL_MERMAID]) {
-    await t.test(specialSuit, () => {
+    await t.test(`${specialSuit} when ${specialSuit} is played first`, () => {
       const trick = new Trick(2)
       trick.addCard(tam, new SpecialCard(specialSuit, 1))
-      trick.addCard(peter, new SpecialCard(SPECIAL_FLAG, 2))
+      trick.addCard(peter, new SpecialCard(SPECIAL_FLAG, 1))
       assert.equal(trick.getWinner(), tam)
+    })
+
+    await t.test(`${specialSuit} when the flag is played first`, () => {
+      const trick = new Trick(2)
+      trick.addCard(tam, new SpecialCard(SPECIAL_FLAG, 1))
+      trick.addCard(peter, new SpecialCard(specialSuit, 1))
+      assert.equal(trick.getWinner(), peter)
+    })
+  }
+
+  for (const numberedSuit of [SUIT_RED, SUIT_YELLOW, SUIT_BLUE, SUIT_BLACK]) {
+    await t.test(`${numberedSuit} when ${numberedSuit} is played first`, () => {
+      const trick = new Trick(2)
+      trick.addCard(tam, new NumberedCard(numberedSuit, 1))
+      trick.addCard(peter, new SpecialCard(SPECIAL_FLAG, 1))
+      assert.equal(trick.getWinner(), tam)
+    })
+
+    await t.test(`${numberedSuit} when the flag is played first`, () => {
+      const trick = new Trick(2)
+      trick.addCard(tam, new SpecialCard(SPECIAL_FLAG, 1))
+      trick.addCard(peter, new NumberedCard(numberedSuit, 1))
+      assert.equal(trick.getWinner(), peter)
     })
   }
 })
 
+// TODO: flags should lose to numbered cards too
 // TODO: need a test around scary mary
