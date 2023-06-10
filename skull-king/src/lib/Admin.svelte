@@ -1,31 +1,47 @@
 <script>
-  import {
-    BidEvent,
-    dispatchGameEvent,
-    game,
-    PlayCardEvent,
-    StartNextRoundEvent,
-    StartNextTrickEvent
-  } from "../core/core.js";
+  import {game} from "../core/core.js";
+  import {BidEvent, PlayCardEvent, StartNextRoundEvent, StartNextTrickEvent} from "../core/game.js";
 
-  function skipBids() {
-    $game.getPlayers().forEach((pid) => {dispatchGameEvent(new BidEvent(pid, 0))})
+  export let ws
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function sendEvent(evt) {
+    ws.send(JSON.stringify(evt))
+    await sleep(100)
   }
 
-  function playCardEach() {
-    $game.getPlayers().forEach((pid) => {dispatchGameEvent(new PlayCardEvent(pid, $game.getCards(pid)[0]))})
+  async function broadcastEvent(makeEvt) {
+    for (let pid of $game.getPlayers()) {
+      await sendEvent(makeEvt(pid))
+    }
   }
 
-  function skipRound() {
-    skipBids()
+  const skipBids = () => broadcastEvent((pid) => new BidEvent(pid, 0));
+  const playCardEach = () =>
+    broadcastEvent((pid) => {
+      const cardToPlay = $game.getCards(pid).find((c) => $game.canPlayCard(pid, c))
+      return new PlayCardEvent(pid, cardToPlay);
+    })
+
+  async function skipRound() {
+    console.log("players>>", $game.getPlayers())
+
+    await skipBids()
+
+    let stopper = 0
 
     while ($game.getCurrentTrickNumber() < $game.getRoundNumber()) {
-      playCardEach()
-      dispatchGameEvent(new StartNextTrickEvent())
+      if (stopper > 11) throw new Error("oops, stuck in a while loop...")
+
+      await playCardEach()
+      await sendEvent(new StartNextTrickEvent())
+      console.log("in while loop...")
+      stopper++
     }
 
-    playCardEach()
-    dispatchGameEvent(new StartNextRoundEvent())
+    await playCardEach()
+    if ($game.getRoundNumber() < 10) await sendEvent(new StartNextRoundEvent())
   }
 </script>
 

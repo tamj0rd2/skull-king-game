@@ -1,12 +1,15 @@
 <script>
-  import {dispatchGameEvent, game, PlayCardEvent} from "../core/core.js";
+  import {dispatchGameEvent, game} from "../core/core.js";
+  import {PlayCardEvent} from "../core/game.js";
 
   export let playerId
+  export let onCardPlayed
+
   $: cards = $game.getCards(playerId)
   $: canPlayCards = $game.hasEveryoneBid() && $game.getCards(playerId).length > ($game.getRoundNumber() - $game.getCurrentTrickNumber())
 
   function handlePlayCard(card) {
-    dispatchGameEvent(new PlayCardEvent(playerId, card))
+    onCardPlayed(new PlayCardEvent(playerId, card))
   }
 </script>
 

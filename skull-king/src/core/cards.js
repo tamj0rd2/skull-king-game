@@ -17,6 +17,18 @@ export class Trick {
     this._playerCount = playerCount
   }
 
+  static fromJSON(json) {
+    const trick = new Trick()
+
+    for (const key in json) {
+      if (json.hasOwnProperty(key)) {
+        trick[key] = json[key]
+      }
+    }
+
+    return trick
+  }
+
   addCard(playerId, card) {
     const play = {playerId, card}
     this._plays.push(play)
@@ -47,6 +59,8 @@ export class Trick {
         if (!this._plays.find((p) => p.card.suit === SPECIAL_MERMAID)) return this._highestPlay = play
         return
       case SPECIAL_SCARYMARY:
+        console.error("haven't implemented the logic for scary mary yet, so let's just say it always wins")
+        return this._highestPlay = play
       default:
         throw new Error(`could not compare ${card.id} to highest card ${highestCard.id}`)
     }
@@ -83,6 +97,9 @@ export class Trick {
 }
 
 export class NumberedCard {
+  static type = "numbered_card"
+  type = NumberedCard.type
+
   constructor(suit, number) {
     if (![SUIT_YELLOW, SUIT_RED, SUIT_BLACK, SUIT_BLUE].includes(suit)) {
       throw new Error(`${suit} cannot be a numbered card`)
@@ -104,12 +121,16 @@ export class NumberedCard {
 }
 
 export class SpecialCard {
+  static type = "special_card"
+  type = SpecialCard.type
+
   constructor(suit, instance) {
     if ([SUIT_YELLOW, SUIT_RED, SUIT_BLACK, SUIT_BLUE].includes(suit)) {
       throw new Error(`${suit} cannot be a special card`)
     }
 
     this.suit = suit
+    this.instance = instance
     this.id = `${suit}${instance}`
   }
 }

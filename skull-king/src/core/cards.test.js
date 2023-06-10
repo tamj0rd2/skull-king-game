@@ -42,6 +42,13 @@ test("when the suit is a lower numbered card, black wins", () => {
   assert.equal(trick.getWinner(), peter)
 })
 
+test("something annoying", () => {
+  const trick = new Trick(2)
+  trick.addCard(tam, new NumberedCard("red", 4))
+  trick.addCard(peter, new NumberedCard("black", 6))
+  assert.equal(trick.getWinner(), peter)
+})
+
 test("when the suit is black, the highest black wins", () => {
   const trick = new Trick(players.length)
   trick.addCard(tam, new NumberedCard(SUIT_BLACK, 6))

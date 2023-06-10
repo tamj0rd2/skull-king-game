@@ -1,17 +1,17 @@
 <script>
   import PlayerUI from "./lib/PlayerUI.svelte";
   import Admin from "./lib/Admin.svelte";
-  import {dispatchGameEvent, game, StartGameEvent} from "./core/core.js";
 
-  dispatchGameEvent(new StartGameEvent(["tam", "peter"]))
+  const urlParams = new URLSearchParams(window.location.search)
+  const playerId = urlParams.get('playerId')
+
+  const ws = new WebSocket('ws://localhost:8080')
 </script>
 
 <main>
-  <Admin />
+  <Admin ws={ws} />
   <hr />
-  <PlayerUI playerId="tam" isHost />
-  <hr />
-  <PlayerUI playerId="peter" />
+  <PlayerUI playerId={playerId} ws={ws} />
 </main>
 
 <style>

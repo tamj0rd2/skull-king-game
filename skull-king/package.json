@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "node --test",
     "test:watch": "node --test --watch ./",
-    "server": "node ./src/server.js"
+    "server": "clear && node ./src/server.js",
+    "server:watch": "npm-watch server"
   },
   "watch": {
     "server": {

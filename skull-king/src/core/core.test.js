@@ -1,12 +1,7 @@
 import test, {afterEach, beforeEach} from 'node:test'
 import assert from 'node:assert'
 import {
-  BidEvent,
-  dispatchGameEvent, ERROR_CARD_DOES_NOT_MATCH_SUIT, ERROR_CARD_NOT_IN_HAND,
-  game as gameStore, StartGameEvent,
-  PlayCardEvent,
-  PlayerRoundScoreCard,
-  StartNextRoundEvent, StartNextTrickEvent
+  dispatchGameEvent, game as gameStore
 } from "./core.js";
 import { get } from 'svelte/store';
 import {
@@ -19,6 +14,13 @@ import {
   SUIT_BLUE,
   SUIT_RED
 } from "./cards.js";
+import {
+  BidEvent,
+  ERROR_CARD_DOES_NOT_MATCH_SUIT,
+  ERROR_CARD_NOT_IN_HAND, PlayCardEvent, PlayerRoundScoreCard, StartGameEvent,
+  StartNextRoundEvent,
+  StartNextTrickEvent
+} from "./game.js";
 
 class DeckDouble {
   _deals = []
